@@ -8,7 +8,7 @@ OFILES=main.o auxiliary.o
 HEADERS=auxiliary.h
 
 
-CLEANFILES=server *~ *.o
+CLEANFILES=server *~ $(OFILES)
 
 
 default: server
