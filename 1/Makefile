@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS= -Wall -Wextra  -g -O2 -Werror
+CFLAGS= -Wall -Wextra  -g -O2 #-Werror
 DEBUGFLAGS = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -fsanitize=bounds
 
 

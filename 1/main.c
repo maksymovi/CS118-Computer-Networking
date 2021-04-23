@@ -9,7 +9,7 @@
 
 
 //DEFINES
-#define MAIN_PORT 8001
+#define MAIN_PORT 8101
 #define SOCKET_BACKLOG 5
 
 
@@ -57,13 +57,16 @@ int main()
 	if(acceptedfd < 0)
 		fatalError("Socket Accept Error");
 
-	acceptStream = fdopen(acceptedfd, "r");
+	//acceptStream = fdopen(acceptedfd, "r");
 	
-	while((bufptr = fgets(buffer, 1000, acceptStream)) != NULL)
-	{
-		printf("%s", buffer);
-	}
-	printf("\n");
+	int pipefds[2] = {acceptedfd, STDOUT_FILENO};
+
+	if(pipe(pipefds))
+		fatalError("Pipe Error");
+
+
+
+		
 	
 	if(close(acceptedfd))
 		fatalError("Socket Close Error");
