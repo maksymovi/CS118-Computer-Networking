@@ -1,0 +1,20 @@
+Maksym Prokopovych
+605 208 884
+maksymovi@ucla.edu
+
+
+
+Overall the design is pretty simple, dealt with all my socket stuff in the main function, and decided to just handle all of the http request decoding and processing in the handlerequest function. I also completed the extra credit by adding a space decoder in the handlerequest.c file at the top, which processes out all %20s in a string into spaces. Error handling on the HTTP side of things and handling of malformed packets is lacking, I have some basic stuff like rejecting non GET packets and an actual 404 handler that marks things like lack of permissions a 404, but this code would absolutely die against a malformed packet, but seems everything from the project spec to the TAs have told us not to worry about this so I don't.
+
+The biggest problem I ran into was a typo. I wasted 6 hours on this because I used htonl on the port number when initializing the socket instead of the proper htons (because port number is a short and not an int). I spent 6 hours trying to figure out why I was not able to run a socket despite having very similar code I copied from the TA slides running perfectly fine. Eventually I was able to catch the difference, but as I write this I am still incredibly angry that it happened.
+
+Another pretty big problem I ran into is trying to use fork(). I decided that handling requests should be delegated to progesses rather than the main process, so I quickly setup a framework where I could use fork to handle requests.
+Now to a large extent this worked and still does, if you would like to try it feel free to define FORK_SOCKET at the top of main.c to get it to work. Issue is for whatever reason I can't get it to stay stuck to the terminal after the first process exits, I was under the impression it is parent process that is pinned to the terminal and that is what I did but I don't know exactly what is going on regarding that. Either way, I gave it up at some point and opted to just run it sequentially, seemed easier anyways.
+
+
+Last big problem I faced was the fact that I had to write all of this in C. I wanted to actually use C++ because its string features and various classes in the standard library would have been very helpful for a lot of this but the problem seems to be that there is a massive disconnect between C and C++ in terms of IO, I was not able to get the C socket and file descriptors into an iostream form without an exernal library I didn't want to deal with. Ultimately I just decided to force it througnh with C. Only downsides here are things like headers are kind of limited having at least the first line I scan be 2KiB long. I can't imagine things would get this long for the purposes of this projects, file names are typically limited to 256 bytes and we can't have paths here, but that is one thing that I had to do because c strings are a pain compared to C++ strings. I imagine C++ also has a string builder class which would have been excellent for this, although I still made my way through.
+
+
+I used no additional external libraries, everything is homegrown Linux C code. Stackoverflow helped me navigate the disaster that is C and C++ combined IO along with other things, I clicked on many links to solve various problems because googling is what you do when you have an error you cant decode. The only thing I directly copied from stackoverflow though then slightly modified was how to find file size, this place is cited in handlerequest.c. Geeks for geeks also was very helpful in explaining socket logic here https://www.geeksforgeeks.org/socket-programming-cc/. I based my current Makefile off one for one of my older class projects.
+
+Thank you for grading. 

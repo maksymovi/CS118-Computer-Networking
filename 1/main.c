@@ -11,7 +11,7 @@
 #include "handlerequest.h"
 
 //DEFINES
-#define ENTRYPORT 8080
+#define ENTRYPORT 6052
 #define SOCKET_BACKLOG 5
 
 
@@ -67,7 +67,7 @@ int main()
 
 		fprintf(stderr, "Recieved connection, sending to handler.\n");
 
-/*		
+		
 #ifdef FORK_SOCKET
 		int temp = fork();
 		if(temp < 0)
@@ -78,7 +78,9 @@ int main()
 			if(close(socketfd)) //no need for the parent socket here, so we close it in this child
 				perror("Main socket close error"); //decided this shouldn't be fatal
 			//handle request
-			return handlerequest(acceptedfd); //exit process here
+			handlerequest(acceptedfd); //exit process here
+
+			exit(EXIT_SUCCESS);
 		}
 		else
 		{
@@ -86,10 +88,10 @@ int main()
 			if(close(acceptedfd)) //acceptedfd now exists in the other process, no need for it here
 				perror("Accepted socket close error"); 
 		}
-		#else
-*/
+#else
+
 		handlerequest(acceptedfd);
-//#endif
+#endif
 
 	}
 

@@ -136,7 +136,7 @@ int handlerequest(int socketfd)
 	fclose(requested);
 	fclose(sockf);
 	close(socketfd);
-	fprintf(stderr, "HTTP response complete");
+	fprintf(stderr, "HTTP response complete\n");
 	return 0;
 
 	
