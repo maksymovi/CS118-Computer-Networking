@@ -29,9 +29,12 @@ debug: CFLAGS += $(DEBUGFLAGS)
 debug: LINKER += $(DEBUGLINKER)
 debug: server $(OFILES)
 
+dist: $(CFILES) $(HEADERS) README Makefile
+	tar -zcvf 605208884.tar.gz $(CFILES) $(HEADERS) README Makefile
+
 
 
 clean:
 	rm -f $(CLEANFILES)
 
-.PHONY: clean default debug
+.PHONY: clean default debug dist

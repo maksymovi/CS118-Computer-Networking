@@ -17,6 +17,28 @@ static const char gif[] = "image/gif";
 static const char binary[] = "application/octet-stream";
 
 
+void fixspaces(char* str)
+{
+	int i = 0;
+	int j = 0;
+	//looking for %20s replacing them with spaces. will iterate through this in two ways.
+	//in a real webserver im supposed to do this with all %##s but since that isn't the spec requirements im leaning on the side of caution.
+
+	//The more I look at this function the more I'm impressed that I was able to come up with it. 
+	for(; str[j] != '\0'; j++, i++)
+	{
+		if(str[j] == '%' && str[j+1] == '2' && str[j+2] == '0')
+		{
+			str[i] = ' ';
+			j+= 2;
+		}
+		else
+			str[i] = str[j];
+	}
+	str[i] = str[j];
+	return;
+}
+
 int handlerequest(int socketfd)
 {
 	unsigned int i;
@@ -48,10 +70,13 @@ int handlerequest(int socketfd)
 
 	strtok(buffer, " \r\\");
 	filename = strtok(NULL, " \r\\") + 1; // +1 gets rid of front slash
+
 	httpversion = strtok(NULL, " \r\\");
 
+	fixspaces(filename);
 	//all strings null terminated, at this point we can start crafting a response.
 	//Doesn't seem its necessary to scan the rest of this header.
+
 	//going to craft a response in here since it doesn't seem too difficult
 
 	//first check if file exists and is readable
@@ -71,17 +96,22 @@ int handlerequest(int socketfd)
 	//want to find the type of the file, do to this we have to find the end of the filename, strlen is easiest for this.
 
 	i = strlen(filename);
-	//5 away fron null terminator for .html, 4 for the 3 letter ones
-	if(!strcmp(filename + i - 5, ".html"))
-		typestring = html;
-	else if(!strcmp(filename + i - 4, ".txt"))
-		typestring = plaintext;
-	else if(!strcmp(filename + i - 4, ".jpg"))
-		typestring = jpeg;
-	else if(!strcmp(filename + i - 4, ".png"))
-		typestring = png;
-	else if(!strcmp(filename + i - 4, ".gif"))
-		typestring = gif;
+	//5 away fron null terminator for .html, 4 for the 3 letter one
+	if(i >= 4)
+	{
+		if(!strcmp(filename + i - 4, ".gif"))
+			typestring = gif;
+		else if(!strcmp(filename + i - 4, ".txt"))
+			typestring = plaintext;
+		else if(!strcmp(filename + i - 4, ".jpg"))
+			typestring = jpeg;
+		else if(!strcmp(filename + i - 4, ".png"))
+			typestring = png;
+		else if(i >= 5 && !strcmp(filename + i - 5, ".html"))
+			typestring = html;
+		else
+			typestring = binary;
+	}
 	else
 		typestring = binary;
 	
@@ -106,7 +136,7 @@ int handlerequest(int socketfd)
 	fclose(requested);
 	fclose(sockf);
 	close(socketfd);
-	fprintf(stderr, "HTTP response for '%s' complete\n", filename);
+	fprintf(stderr, "HTTP response complete");
 	return 0;
 
 	
