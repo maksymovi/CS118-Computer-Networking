@@ -1,11 +1,11 @@
 CC=gcc
-CFLAGS= -Wall -Wextra  -g -O2 #-Werror
-DEBUGFLAGS = -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -fsanitize=bounds
 
+DEBUGFLAGS = -fsanitize=address  -fno-omit-frame-pointer -fsanitize=bounds
+CFLAGS= -Wall -Wextra  -g -O2 $(DEBUGFLAGS)
 
-CFILES=main.c auxiliary.c
-OFILES=main.o auxiliary.o
-HEADERS=auxiliary.h
+CFILES=main.c auxiliary.c handlerequest.c
+OFILES=main.o auxiliary.o handlerequest.o
+HEADERS=auxiliary.h handlerequest.h
 
 
 CLEANFILES=server *~ $(OFILES)
@@ -17,10 +17,10 @@ default: server
 
 
 %.o: %.c $(HEADERS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -c -o $@ $< $(CFLAGS) -lasan
 
 server: $(OFILES)
-	$(CC) -o server $(OFILES)
+	$(CC) -o server $(OFILES) -lasan
 
 
 debug: CFLAGS += $(DEBUFGLAGS)
