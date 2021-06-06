@@ -12,7 +12,7 @@
 
 // =====================================
 
-#define RTO 500000       /* timeout in microseconds */
+#define RTO 50000        /* timeout in microseconds */
 #define HDR_SIZE 12      /* header size*/
 #define PKT_SIZE 524     /* total packet size */
 #define PAYLOAD_SIZE 512 /* PKT_SIZE - HDR_SIZE */
@@ -199,12 +199,13 @@ int main(int argc, char *argv[])
 
     struct packet ackpkt;
     struct packet pkts[WND_SIZE];
-    int s = 0;
-    int e = 0;
+    int s; //start window
+    int e; //next empty slot, if s == e, then we have used all our slots
     int full = 0;
 
     // =====================================
     // Send First Packet (ACK containing payload)
+    //special packet due to ack, has to be sent individually, also initiates our window algorithm
 
     m = fread(buf, 1, PAYLOAD_SIZE, fp);
 
@@ -214,44 +215,65 @@ int main(int argc, char *argv[])
     timer = setTimer();
     buildPkt(&pkts[0], seqNum, (synackpkt.seqnum + 1) % MAX_SEQN, 0, 0, 0, 1, m, buf);
 
-    e = 1;
-
-    // =====================================
-    // *** TODO: Implement the rest of reliable transfer in the client ***
-    // Implement GBN for basic requirement or Selective Repeat to receive bonus
-
-    // Note: the following code is not the complete logic. It only sends a
-    //       single data packet, and then tears down the connection without
-    //       handling data loss.
-    //       Only for demo purpose. DO NOT USE IT in your final submission
-    while (1)
-    { //looping for the initial ack
-        n = recvfrom(sockfd, &ackpkt, PKT_SIZE, 0, (struct sockaddr *)&servaddr, (socklen_t *)&servaddrlen);
-        if (n > 0)
-        {
-            printRecv(&ackpkt);
-            break;
-        }
-    }
+    e = 1;                            //this initiates the windowing algorithm
     seqNum = (seqNum + m) % MAX_SEQN; //increase seqnum
-    int clientAckNum = (synackpkt.seqnum + 1) % MAX_SEQN;
-    //now we are in the main part of all of this now that the first packet has been sent and acked
+    short clientAckNum = (synackpkt.seqnum + 1) % MAX_SEQN;
 
-    while (m = fread(buf, 1, PAYLOAD_SIZE, fp)) //we have data to send
-    {
-        buildPkt(&pkts[0], seqNum, clientAckNum, 0, 0, 0, 0, m, buf);
-        printSend(&pkts[0], 0);
-        sendto(sockfd, &pkts[0], PKT_SIZE, 0, (struct sockaddr *)&servaddr, servaddrlen);
+    bool finished
+        //wait for first packet ACK, and send all other packets
         while (1)
-        { //looping for the ack
-            n = recvfrom(sockfd, &ackpkt, PKT_SIZE, 0, (struct sockaddr *)&servaddr, (socklen_t *)&servaddrlen);
-            if (n > 0)
+    {
+        while (s != e && m != 0) //start window is not equal to
+        {
+            //we build and send one packet per every slot that opens up
+            if (m = fread(buf, 1, PAYLOAD_SIZE, fp)) //we have data to send
             {
-                printRecv(&ackpkt);
-                break;
+                buildPkt(&pkts[e], seqNum, clientAckNum, 0, 0, 0, 0, m, buf);
+                printSend(&pkts[e], 0);
+                sendto(sockfd, &pkts[e], PKT_SIZE, 0, (struct sockaddr *)&servaddr, servaddrlen);
+
+                seqNum = (seqNum + m) % MAX_SEQN;     //increment seqNum for next loop
+                e = (e + 1) % WND_SIZE                //we decrease window size by 1
+                                  timer = setTimer(); //maybe put this in a better place, set the timer once all packets are transmitted
+            }
+            //if the if fails, then we have transmitted the entire file and exit the loop
+            //maybe there is a better way to handle this but here we are
+        }
+        //while we have no more data to send, wait for acks.
+        n = recvfrom(sockfd, &ackpkt, PKT_SIZE, 0, (struct sockaddr *)&servaddr, (socklen_t *)&servaddrlen);
+        if (n > 0) //polling this way is a bit inefficient but doing this for now
+        {          //we have an ack, confirm which packet it is part of.
+            printRecv(&ackpkt);
+
+            //here we find the right ack for the packet
+            for (int j = s; j != e; (j++) % WND_SIZE) //will probably be the ack for the first packet
+            {
+                //in theory I can just look at the seqNum of the next packet to get the right acknum, but its clearer this way.
+                if ((pkts[j].seqnum + pkts[j].length) % MAX_SEQN == ackpkt.acknum)
+                {
+                    //j is the maximally ack'd packet, advance s and break
+                    s = (j + 1) % WND_SIZE;
+                    break;
+                }
+            } //if this loop fails, then the recieved ack was invalid
+        }
+        //check timeout here
+        if (isTimeout(timer))
+        {
+            printTimeout(&pkts[s])
+                //retransmit all unacked packets
+                for (int j = s; j != e; (j++) % WND_SIZE)
+            {
+                printSend(&pkts[j], 1);
+                sendto(sockfd, &pkts[j], PKT_SIZE, 0, (struct sockaddr *)&servaddr, servaddrlen);
+                timer = setTimer(); //maybe move to after for loop
             }
         }
-        seqNum = (seqNum + m) % MAX_SEQN; //increment seqNum for next loop
+        if (m == 0 && s == e)
+        {
+            //kind of crude to poll for this, this implies transmission is complete and everything is acked
+            break;
+        }
     }
 
     // *** End of your client implementation ***

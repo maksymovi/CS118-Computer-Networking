@@ -213,43 +213,44 @@ int main(int argc, char *argv[])
         //       without handling data loss.
         //       Only for demo purpose. DO NOT USE IT in your final submission
         struct packet recvpkt;
-
         while (1)
         { //loops for all packets
-            while (1)
-            { //loops to poll for packet
-                n = recvfrom(sockfd, &recvpkt, PKT_SIZE, 0, (struct sockaddr *)&cliaddr, (socklen_t *)&cliaddrlen);
-                if (n > 0)
-                { //packet recieved, ACK here
-                    printRecv(&recvpkt);
+            n = recvfrom(sockfd, &recvpkt, PKT_SIZE, 0, (struct sockaddr *)&cliaddr, (socklen_t *)&cliaddrlen);
+            if (n > 0)
+            { //packet recieved, ACK here
+                printRecv(&recvpkt);
 
-                    if (!recvpkt.fin)
+                if (!recvpkt.fin)
+                {
+                    //case when not fin
+
+                    if (cliSeqNum == recvpkt.seqnum) //last sent ack matches current sequence number
                     {
-                        //case when not fin
-
-                        fwrite(recvpkt.payload, 1, recvpkt.length, fp); //write to file
-
-                        cliSeqNum = (cliSeqNum + recvpkt.length) % MAX_SEQN; //increment acknumber
-
+                        cliSeqNum = (cliSeqNum + recvpkt.length) % MAX_SEQN;       //increment acknumber
+                        fwrite(recvpkt.payload, 1, recvpkt.length, fp);            //write to file
                         buildPkt(&ackpkt, seqNum, cliSeqNum, 0, 0, 1, 0, 0, NULL); //build ack
-                        printSend(&ackpkt, 0);
-                        sendto(sockfd, &ackpkt, PKT_SIZE, 0, (struct sockaddr *)&cliaddr, cliaddrlen);
                     }
-
                     else
-                    {                                           //case when fin
-                        cliSeqNum = (cliSeqNum + 1) % MAX_SEQN; //fin always adds 1 to ack, even if without content
-
-                        buildPkt(&ackpkt, seqNum, cliSeqNum, 0, 0, 1, 0, 0, NULL);
-                        printSend(&ackpkt, 0);
-                        sendto(sockfd, &ackpkt, PKT_SIZE, 0, (struct sockaddr *)&cliaddr, cliaddrlen);
-
-                        goto FIN; //double loop break
+                    {                                                              //send a duplicate ack, using the dupack field
+                        buildPkt(&ackpkt, seqNum, cliSeqNum, 0, 0, 0, 1, 0, NULL); //build ack
                     }
+
+                    printSend(&ackpkt, 0);
+                    sendto(sockfd, &ackpkt, PKT_SIZE, 0, (struct sockaddr *)&cliaddr, cliaddrlen);
+                }
+
+                else
+                {                                           //case when fin
+                    cliSeqNum = (cliSeqNum + 1) % MAX_SEQN; //fin always adds 1 to ack, even if without content
+
+                    buildPkt(&ackpkt, seqNum, cliSeqNum, 0, 0, 1, 0, 0, NULL);
+                    printSend(&ackpkt, 0);
+                    sendto(sockfd, &ackpkt, PKT_SIZE, 0, (struct sockaddr *)&cliaddr, cliaddrlen);
+
+                    break; //break because fin
                 }
             }
         }
-    FIN:
 
         // *** End of your server implementation ***
 
