@@ -1,0 +1,14 @@
+Name: Maksym Prokopovych
+UID: 605 208 884
+Email: maksymovi@ucla.edu
+
+I implemented GoBackN. Implementing SR would have been fun but I ran out of time. The server was the easier of the two files to make, effectively I just looped waiting for packets, checked if they were the right sequence number as expected to be next in the series, and if so just replied with an ack packet, or a dupack packet if not the right sequence number. The client was a bit tricker to implement, effectively my main loop polls if we can send more packets, if we can recieve packets, or if we have hit the timeout. Its a bit inefficient to poll this way, particularly polling for if new packets are needed, as I could have had that logic after recieving an ack and not have to poll a variable like that, but this was simpler to implement. Client exits my code when all packets have been acked and there is nothing more left to read. Didn't particularly handle any file errors but thats probably not needed for this project. Testing was done by feeding the program random files (namely the spec pdf) and using the rdproxy to test for errors and sha256sum to check if files are the same, passed all trials I gave it. 
+
+
+I can't say I ran into any serious design problems when doing this, just minor syntactical and logic errors. One thing of course was that the server.c skeleton provided to us would fail if the ack to the synack was lost, that was fixed with piazza post 296.
+
+One minor issue I ran into using a circular buffer was that many of my loops relied on checking looping through the buffer starting at s (oldest unacked sent packet) and ending at e (next packet index to be sent) and often those were the same thing due to the buffer being completely dispatched, which results in s == e and my loops never initating as that was the loop exit condition. Fixed my switching to do while loops.
+
+Another minor issue was the exit case, how to figure out that all packets were sent and acked. One naive approach was to check if file was done reading (m == 0) and check if all packets were acked (s == e), but these conditions can happen when the last packet sent out is also the packet that completely fills the buffer, thus not waiting for their acks. This is why my logic for this is in the code that checks and verifies acks, as it guarentees this not to be the case as at least one ack must come through to end the loop. This is also why I need a goto statement, needed for the double loop break.
+
+I used no outside references from this class for this project, project seemed pretty straight forward and not too difficult thanks to the skeleton code. I used no outside libraries, didn't even have to include any additional headers beyond the skeleton code's. 
