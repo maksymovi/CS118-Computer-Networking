@@ -14,4 +14,4 @@ server: server.c
 client: client.c
 	$(COMPILE) -o client client.c
 clean: 
-	rm server client *.file
+	rm -f server client *.file

@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
                 if (n > 0)
                 { //a packet has been recieved
                     printRecv(&ackpkt);
-                    if (ackpkt.seqnum == cliSeqNum && ackpkt.ack && ackpkt.acknum == (synackpkt.seqnum + 1) % MAX_SEQN)
+                    if (ackpkt.seqnum == cliSeqNum && (ackpkt.ack || ackpkt.dupack) && ackpkt.acknum == (synackpkt.seqnum + 1) % MAX_SEQN)
                     { //verifies if ack, and if acknum and sequence num are as expected
 
                         int length = snprintf(NULL, 0, "%d", i) + 6; //funny way to calculate length but okay
@@ -213,6 +213,7 @@ int main(int argc, char *argv[])
         //       without handling data loss.
         //       Only for demo purpose. DO NOT USE IT in your final submission
         struct packet recvpkt;
+        //fprintf(stderr, "Started main loop");
         while (1)
         { //loops for all packets
             n = recvfrom(sockfd, &recvpkt, PKT_SIZE, 0, (struct sockaddr *)&cliaddr, (socklen_t *)&cliaddrlen);
